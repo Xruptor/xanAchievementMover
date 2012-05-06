@@ -61,19 +61,8 @@ function f:PLAYER_LOGIN()
 end
 
 function xanAchievementMover_SlashCommand(cmd)
-
-	local a,b,c=strfind(cmd, "(%S+)"); --contiguous string of non-space characters
-	
-	if a then
-		if c and c:lower() == "anchor" then
-			if not _G["xanAchievementMover_Anchor"] then return end
-			_G["xanAchievementMover_Anchor"]:Show()
-			return true
-		end
-	end
-		
-	DEFAULT_CHAT_FRAME:AddMessage("xanAchievementMover");
-	DEFAULT_CHAT_FRAME:AddMessage(L["/xanam anchor - toggles the anchors to move the frames"]);
+	if not _G["xanAchievementMover_Anchor"] then return end
+	_G["xanAchievementMover_Anchor"]:Show()
 end
 
 function f:DrawAnchor()
