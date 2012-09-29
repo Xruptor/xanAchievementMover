@@ -9,7 +9,7 @@ f:SetScript("OnEvent", function(self, event, ...) if self[event] then return sel
 ----------------------
 
 local function customFixAnchors(...)
-	local frame, frame2, frameD, frameG = AchievementAlertFrame1, AchievementAlertFrame2, DungeonCompletionAlertFrame1, GuildChallengeAlertFrame
+	local frame, frame2, frameD, frameG, frameA = AchievementAlertFrame1, AchievementAlertFrame2, DungeonCompletionAlertFrame1, GuildChallengeAlertFrame, AlertFrame
 
 	--check for dungeon shown
 	if (frameD:IsShown()) then
@@ -34,6 +34,19 @@ local function customFixAnchors(...)
 		end
 	end
 
+	--position the criteria alerts
+	for i=1, MAX_ACHIEVEMENT_ALERTS do
+		local achframe = _G["CriteriaAlertFrame"..i];
+		if ( achframe and achframe:IsShown() ) then
+			achframe:ClearAllPoints()
+			if i == 1 then
+				f:LoadPositionHook("CriteriaAlertFrame1", "xanAchievementMover_Ach1")
+			elseif _G["CriteriaAlertFrame"..(i-1)] then
+				achframe:SetPoint("TOPLEFT", _G["CriteriaAlertFrame"..(i-1)], "BOTTOMLEFT", 0, 4)
+			end
+		end
+	end
+	
 end
 
 ----------------------
