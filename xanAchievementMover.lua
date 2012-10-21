@@ -9,16 +9,33 @@ f:SetScript("OnEvent", function(self, event, ...) if self[event] then return sel
 ----------------------
 
 local function customFixAnchors(...)
-	local frame, frame2, frameD, frameG, frameA = AchievementAlertFrame1, AchievementAlertFrame2, DungeonCompletionAlertFrame1, GuildChallengeAlertFrame, AlertFrame
+
+	local frame = AchievementAlertFrame1
+	local frameTwo = AchievementAlertFrame2
+	local frameD = DungeonCompletionAlertFrame1
+	local frameG = GuildChallengeAlertFrame
+	local frameA = AlertFrame
+	local frameC = ChallengeModeAlertFrame1
+	local frameS = ScenarioAlertFrame
 
 	--check for dungeon shown
-	if (frameD:IsShown()) then
+	if (frameD and frameD:IsShown()) then
 		f:LoadPositionHook("DungeonCompletionAlertFrame1", "xanAchievementMover_Anchor")
 	end
 	
 	--check for guild challenge shown
-	if (frameG:IsShown()) then
+	if (frameG and frameG:IsShown()) then
 		f:LoadPositionHook("GuildChallengeAlertFrame", "xanAchievementMover_Anchor")
+	end
+	
+	--check for dungeon challenge shown
+	if (frameC and frameC:IsShown()) then
+		f:LoadPositionHook("ChallengeModeAlertFrame1", "xanAchievementMover_Anchor")
+	end
+	
+	--check for scenario complete shown
+	if (frameS and frameS:IsShown()) then
+		f:LoadPositionHook("ScenarioAlertFrame", "xanAchievementMover_Anchor")
 	end
 	
 	--position the achievements
@@ -49,6 +66,8 @@ local function customFixAnchors(...)
 	
 end
 
+hooksecurefunc("AlertFrame_FixAnchors", customFixAnchors)
+
 ----------------------
 --      Enable      --
 ----------------------
@@ -56,9 +75,6 @@ end
 function f:PLAYER_LOGIN()
 
 	if not XanAM_DB then XanAM_DB = {} end
-	
-	--hook to rearrange the positions of the dungeon and achievement alert frames
-	AlertFrame_FixAnchors = customFixAnchors
 	
 	self:DrawAnchor()
 	self:RestoreLayout("xanAchievementMover_Anchor")
@@ -319,6 +335,7 @@ function f:LoadPositionHook(frame, frameAttach)
 
 	_G[frame]:ClearAllPoints()
 	_G[frame]:SetPoint(opt.point, _G[frameAttach], opt.relativePoint, opt.xOfs, opt.yOfs)
+	
 end
 
 ------------------------------
