@@ -4,6 +4,22 @@ local L = XANACHIEVEMENTMOVER_L
 local f = CreateFrame("frame","xanAchievementMover",UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
+UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame2"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["DungeonCompletionAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["GuildChallengeAlertFrame"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["ChallengeModeAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["ScenarioAlertFrame1"] = nil; 
+
+for i=1, MAX_ACHIEVEMENT_ALERTS do
+	UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame"..i] = nil; 
+end
+
+for i=1, MAX_ACHIEVEMENT_ALERTS do
+	UIPARENT_MANAGED_FRAME_POSITIONS["CriteriaAlertFrame"..i] = nil; 
+end
+	
 ----------------------
 --  POSITION FIX    --
 ----------------------
@@ -16,7 +32,7 @@ local function customFixAnchors(...)
 	local frameG = GuildChallengeAlertFrame
 	local frameA = AlertFrame
 	local frameC = ChallengeModeAlertFrame1
-	local frameS = ScenarioAlertFrame
+	local frameS = ScenarioAlertFrame1
 
 	--check for dungeon shown
 	if (frameD and frameD:IsShown()) then
@@ -35,7 +51,7 @@ local function customFixAnchors(...)
 	
 	--check for scenario complete shown
 	if (frameS and frameS:IsShown()) then
-		f:LoadPositionHook("ScenarioAlertFrame", "xanAchievementMover_Anchor")
+		f:LoadPositionHook("ScenarioAlertFrame1", "xanAchievementMover_Anchor")
 	end
 	
 	--position the achievements
