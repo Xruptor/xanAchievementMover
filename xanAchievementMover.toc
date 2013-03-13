@@ -1,8 +1,8 @@
-## Interface: 50001
+## Interface: 50200
 ## Title: xanAchievementMover
 ## Notes: A simple addon that allows the user to move the Achievement and Dungeon notifications.
 ## Author: Xruptor
-## Version: 1.3
+## Version: 1.4
 ## SavedVariables: XanAM_DB
 
 localization\localization.lua

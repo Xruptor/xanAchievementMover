@@ -4,6 +4,22 @@ local L = XANACHIEVEMENTMOVER_L
 local f = CreateFrame("frame","xanAchievementMover",UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
+UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame2"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["DungeonCompletionAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["GuildChallengeAlertFrame"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["ChallengeModeAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["ScenarioAlertFrame"] = nil; 
+
+for i=1, MAX_ACHIEVEMENT_ALERTS do
+	UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame"..i] = nil; 
+end
+
+for i=1, MAX_ACHIEVEMENT_ALERTS do
+	UIPARENT_MANAGED_FRAME_POSITIONS["CriteriaAlertFrame"..i] = nil; 
+end
+	
 ----------------------
 --  POSITION FIX    --
 ----------------------
