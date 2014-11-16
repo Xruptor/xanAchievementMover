@@ -11,6 +11,9 @@ UIPARENT_MANAGED_FRAME_POSITIONS["GuildChallengeAlertFrame"] = nil;
 UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil; 
 UIPARENT_MANAGED_FRAME_POSITIONS["ChallengeModeAlertFrame1"] = nil; 
 UIPARENT_MANAGED_FRAME_POSITIONS["ScenarioAlertFrame1"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["GarrisonFollowerAlertFrame"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["GarrisonMissionAlertFrame"] = nil; 
+UIPARENT_MANAGED_FRAME_POSITIONS["GarrisonBuildingAlertFrame"] = nil; 
 
 for i=1, MAX_ACHIEVEMENT_ALERTS do
 	UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame"..i] = nil; 
@@ -19,7 +22,7 @@ end
 for i=1, MAX_ACHIEVEMENT_ALERTS do
 	UIPARENT_MANAGED_FRAME_POSITIONS["CriteriaAlertFrame"..i] = nil; 
 end
-	
+
 ----------------------
 --  POSITION FIX    --
 ----------------------
@@ -33,7 +36,11 @@ local function customFixAnchors(...)
 	local frameA = AlertFrame
 	local frameC = ChallengeModeAlertFrame1
 	local frameS = ScenarioAlertFrame1
-
+	local frameGF = GarrisonFollowerAlertFrame
+	local frameGM = GarrisonMissionAlertFrame
+	local frameGB = GarrisonBuildingAlertFrame
+	
+	
 	--check for dungeon shown
 	if (frameD and frameD:IsShown()) then
 		f:LoadPositionHook("DungeonCompletionAlertFrame1", "xanAchievementMover_Anchor")
@@ -52,6 +59,17 @@ local function customFixAnchors(...)
 	--check for scenario complete shown
 	if (frameS and frameS:IsShown()) then
 		f:LoadPositionHook("ScenarioAlertFrame1", "xanAchievementMover_Anchor")
+	end
+	
+	--check for garrison frames
+	if (frameGF and frameGF:IsShown()) then
+		f:LoadPositionHook("GarrisonFollowerAlertFrame", "xanAchievementMover_Anchor")
+	end
+	if (frameGM and frameGM:IsShown()) then
+		f:LoadPositionHook("GarrisonMissionAlertFrame", "xanAchievementMover_Anchor")
+	end
+	if (frameGB and frameGB:IsShown()) then
+		f:LoadPositionHook("GarrisonBuildingAlertFrame", "xanAchievementMover_Anchor")
 	end
 	
 	--position the achievements
