@@ -4,103 +4,133 @@ local L = XANACHIEVEMENTMOVER_L
 local f = CreateFrame("frame","xanAchievementMover",UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
-UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame1"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame2"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["DungeonCompletionAlertFrame1"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["GuildChallengeAlertFrame"] = nil; 
+local debugf = tekDebug and tekDebug:GetFrame("xanAchievementMover")
+local function Debug(...)
+    if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
+end
+
+
+--[[
+	
+	WOW uses an AlertSystem to push out alerts on the screen.
+	The two files are AlertFrames.lua and AlertFrameSystems.lua
+	https://github.com/tomrus88/BlizzardInterfaceCode/blob/49f059f549c48d5811b13771a52c8a4cfff3b227/Interface/FrameXML/AlertFrameSystems.lua
+
+
+	AchievementAlertSystem = AlertFrame:AddQueuedAlertFrameSubSystem("AchievementAlertFrameTemplate", AchievementAlertFrame_SetUp, 2, 6);
+	AchievementAlertSystem:SetCanShowMoreConditionFunc(function() return not C_PetBattles.IsInBattle() end);
+	CriteriaAlertSystem = AlertFrame:AddQueuedAlertFrameSubSystem("CriteriaAlertFrameTemplate", CriteriaAlertFrame_SetUp, 2, 0);
+	GuildChallengeAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GuildChallengeAlertFrame, GuildChallengeAlertFrame_SetUp);
+	DungeonCompletionAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(DungeonCompletionAlertFrame, DungeonCompletionAlertFrame_SetUp);
+	ScenarioAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(ScenarioAlertFrame, ScenarioAlertFrame_SetUp);
+	InvasionAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(ScenarioLegionInvasionAlertFrame, ScenarioLegionInvasionAlertFrame_SetUp, ScenarioLegionInvasionAlertFrame_Coalesce);
+	DigsiteCompleteAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(DigsiteCompleteToastFrame, DigsiteCompleteToastFrame_SetUp);
+	StorePurchaseAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(StorePurchaseAlertFrame, StorePurchaseAlertFrame_SetUp);
+	GarrisonBuildingAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonBuildingAlertFrame, GarrisonBuildingAlertFrame_SetUp);
+	GarrisonMissionAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonMissionAlertFrame, GarrisonMissionAlertFrame_SetUp);
+	GarrisonShipMissionAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonShipMissionAlertFrame, GarrisonMissionAlertFrame_SetUp);
+	GarrisonRandomMissionAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonRandomMissionAlertFrame, GarrisonRandomMissionAlertFrame_SetUp);
+	GarrisonFollowerAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonFollowerAlertFrame, GarrisonFollowerAlertFrame_SetUp);
+	GarrisonShipFollowerAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonShipFollowerAlertFrame, GarrisonShipFollowerAlertFrame_SetUp);
+	GarrisonTalentAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(GarrisonTalentAlertFrame, GarrisonTalentAlertFrame_SetUp);
+	WorldQuestCompleteAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(WorldQuestCompleteAlertFrame, WorldQuestCompleteAlertFrame_SetUp, WorldQuestCompleteAlertFrame_Coalesce);
+	LegendaryItemAlertSystem = AlertFrame:AddSimpleAlertFrameSubSystem(LegendaryItemAlertFrame, LegendaryItemAlertFrame_SetUp);
+	
+	
+	local achievementAlertPool = AchievementAlertSystem.alertFramePool
+	for alertFrame in achievementAlertPool:EnumerateActive() do
+		--modify the alertFrame however
+	end
+
+	Examples to push alerts on screen:
+	/run LootAlertSystem:AddAlert("|cff9d9d9d|Hitem:7073:0:0:0:0:0:0:0:80:0:0:0:0|h[Broken Fang]|h|r", 1, specID, 3, 1, 3, Awesome);
+	 
+	/run MoneyWonAlertSystem:AddAlert(815)
+	 
+	/run AchievementAlertSystem:AddAlert(5192)
+	 
+	/run CriteriaAlertSystem:ShowAlert(80,1)
+	 
+	/run GuildChallengeAlertSystem:AddAlert(3, 2, 5)
+	 
+	/run DungeonCompletionAlertSystem:AddAlert()
+	 
+	/run InvasionAlertSystem:AddAlert(1,20)
+	 
+	/run DigsiteCompleteAlertSystem:AddAlert(1)
+	 
+	 /run LootUpgradeAlertSystem:AddAlert("|cff9d9d9d|Hitem:7073:0:0:0:0:0:0:0:80:0:0:0:0|h[Broken Fang]|h|r", 1, specID, 3, "Cesaor", 3, Awesome);
+	 
+	 /run GarrisonFollowerAlertSystem:AddAlert(112, "Cool Guy", "100", 3, 1)
+	 
+	 /run GarrisonShipFollowerAlertSystem:AddAlert(592, "Test", "Transport", "GarrBuilding_Barracks_1_H", 3, 2, 1)
+	 
+	 /run GarrisonBuildingAlertSystem:AddAlert("miau")
+	 
+	 /run WorldQuestCompleteAlertSystem:AddAlert(112)
+ 
+]]
+	
+	
 UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["ChallengeModeAlertFrame1"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["ScenarioAlertFrame1"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["GarrisonFollowerAlertFrame"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["GarrisonMissionAlertFrame"] = nil; 
-UIPARENT_MANAGED_FRAME_POSITIONS["GarrisonBuildingAlertFrame"] = nil; 
 
-for i=1, MAX_ACHIEVEMENT_ALERTS do
-	UIPARENT_MANAGED_FRAME_POSITIONS["AchievementAlertFrame"..i] = nil; 
-end
-
-for i=1, MAX_ACHIEVEMENT_ALERTS do
-	UIPARENT_MANAGED_FRAME_POSITIONS["CriteriaAlertFrame"..i] = nil; 
-end
 
 ----------------------
 --  POSITION FIX    --
 ----------------------
+ 
+local function customFixAnchors(self, ...)
+	
+	--DEBUG ONLY
+	---------------------------------
+--[[ 	
+	local alertPool
 
-local function customFixAnchors(...)
+	for k, v in pairs(AlertFrame) do
+		if k then Debug("Parent: "..tostring(k)) end
+	end
+	
+	for k, v in pairs(self) do
+		if k then Debug("Self: "..tostring(k)) end
+	end
+	
+	for i, alertFrameSubSystem in ipairs(self.alertFrameSubSystems) do
+		
+		
+		alertPool = alertFrameSubSystem.alertFramePool
+		
+		if alertPool then
+		
+			-- for k, v in pairs(alertPool) do
+				-- if k then Debug("Pool: "..tostring(k)) end
+			-- end
 
-	local frame = AchievementAlertFrame1
-	local frameTwo = AchievementAlertFrame2
-	local frameD = DungeonCompletionAlertFrame1
-	local frameG = GuildChallengeAlertFrame
-	local frameA = AlertFrame
-	local frameC = ChallengeModeAlertFrame1
-	local frameS = ScenarioAlertFrame1
-	local frameGF = GarrisonFollowerAlertFrame
-	local frameGM = GarrisonMissionAlertFrame
-	local frameGB = GarrisonBuildingAlertFrame
-	
-	
-	--check for dungeon shown
-	if (frameD and frameD:IsShown()) then
-		f:LoadPositionHook("DungeonCompletionAlertFrame1", "xanAchievementMover_Anchor")
-	end
-	
-	--check for guild challenge shown
-	if (frameG and frameG:IsShown()) then
-		f:LoadPositionHook("GuildChallengeAlertFrame", "xanAchievementMover_Anchor")
-	end
-	
-	--check for dungeon challenge shown
-	if (frameC and frameC:IsShown()) then
-		f:LoadPositionHook("ChallengeModeAlertFrame1", "xanAchievementMover_Anchor")
-	end
-	
-	--check for scenario complete shown
-	if (frameS and frameS:IsShown()) then
-		f:LoadPositionHook("ScenarioAlertFrame1", "xanAchievementMover_Anchor")
-	end
-	
-	--check for garrison frames
-	if (frameGF and frameGF:IsShown()) then
-		f:LoadPositionHook("GarrisonFollowerAlertFrame", "xanAchievementMover_Anchor")
-	end
-	if (frameGM and frameGM:IsShown()) then
-		f:LoadPositionHook("GarrisonMissionAlertFrame", "xanAchievementMover_Anchor")
-	end
-	if (frameGB and frameGB:IsShown()) then
-		f:LoadPositionHook("GarrisonBuildingAlertFrame", "xanAchievementMover_Anchor")
-	end
-	
-	--position the achievements
-	for i=1, MAX_ACHIEVEMENT_ALERTS do
-		local achframe = _G["AchievementAlertFrame"..i];
-		if ( achframe and achframe:IsShown() ) then
-			achframe:ClearAllPoints()
-			if i == 1 then
-				f:LoadPositionHook("AchievementAlertFrame1", "xanAchievementMover_Ach1")
-			elseif _G["AchievementAlertFrame"..(i-1)] then
-				achframe:SetPoint("TOPLEFT", _G["AchievementAlertFrame"..(i-1)], "BOTTOMLEFT", 0, 4)
+			for alertFrameObj in alertPool:EnumerateActive() do
+				local nameText = alertFrameObj.Name
+
+				for k, v in pairs(alertFrameObj) do
+					if k then Debug("alertFrameObj: "..tostring(k)) end
+				end
 			end
+			
 		end
-	end
-
-	--position the criteria alerts
-	for i=1, MAX_ACHIEVEMENT_ALERTS do
-		local achframe = _G["CriteriaAlertFrame"..i];
-		if ( achframe and achframe:IsShown() ) then
-			achframe:ClearAllPoints()
-			if i == 1 then
-				f:LoadPositionHook("CriteriaAlertFrame1", "xanAchievementMover_Ach1")
-			elseif _G["CriteriaAlertFrame"..(i-1)] then
-				achframe:SetPoint("TOPLEFT", _G["CriteriaAlertFrame"..(i-1)], "BOTTOMLEFT", 0, 4)
-			end
-		end
-	end
 	
+	end
+]]
+
+	AlertFrame:ClearAllPoints()
+	AlertFrame:SetPoint("CENTER", xanAchievementMover_Anchor, "BOTTOM", 0, 0)
 end
 
-hooksecurefunc("AlertFrame_FixAnchors", customFixAnchors)
+hooksecurefunc(AlertFrame,"UpdateAnchors", customFixAnchors)
+
+-- hooksecurefunc(CriteriaAlertSystem,"ShowAlert", function()
+	-- Debug("CriteriaAlertSystem (ShowAlert)")
+-- end)
+
+-- hooksecurefunc(AlertFrame,"AddAlertFrame", function()
+	-- Debug("AlertFrame (AddAlertFrame)")
+-- end)
 
 ----------------------
 --      Enable      --
@@ -113,11 +143,11 @@ function f:PLAYER_LOGIN()
 	self:DrawAnchor()
 	self:RestoreLayout("xanAchievementMover_Anchor")
 
-	SLASH_XANACHIEVEMENTMOVER1 = "/xanam";
+	SLASH_XANACHIEVEMENTMOVER1 = "/xam";
 	SlashCmdList["XANACHIEVEMENTMOVER"] = xanAchievementMover_SlashCommand;
 	
 	local ver = GetAddOnMetadata("xanAchievementMover","Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] loaded:   /xanam"], "xanAchievementMover", ver or "1.0"))
+	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] loaded:   /xam"], "xanAchievementMover", ver or "1.0"))
 	
 	self:UnregisterEvent("PLAYER_LOGIN")
 	self.PLAYER_LOGIN = nil
@@ -130,12 +160,11 @@ end
 
 function f:DrawAnchor()
 
-	--lets do the dungeon one first ;)
 	local frame = CreateFrame("Frame", "xanAchievementMover_Anchor", UIParent)
 
 	frame:SetFrameStrata("DIALOG")
-	frame:SetWidth(DungeonCompletionAlertFrame1:GetWidth())
-	frame:SetHeight(DungeonCompletionAlertFrame1:GetHeight())
+	frame:SetWidth(300)
+	frame:SetHeight(88)
 
 	frame:EnableMouse(true)
 	frame:SetMovable(true)
@@ -155,14 +184,13 @@ function f:DrawAnchor()
 			self:StopMovingOrSizing()
 
 			f:SaveLayout(self:GetName())
-			f:SaveLayout("xanAchievementMover_Ach1")
 		end
 	end)
 
 	local stringA = frame:CreateFontString()
 	stringA:SetAllPoints(frame)
 	stringA:SetFontObject("GameFontNormalSmall")
-	stringA:SetText(L["xanAchievementMover [DUNGEON POPUP]\n\nRight click when finished dragging"])
+	stringA:SetText(L["xanAchievementMover \n\nRight click when finished dragging"])
 
 	frame:SetBackdrop({
 			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
@@ -171,135 +199,16 @@ function f:DrawAnchor()
 			edgeSize = 16,
 			insets = { left = 5, right = 5, top = 5, bottom = 5 }
 	})
-	frame:SetBackdropColor(0.15, 0.49, 1, 1)
-	frame:SetBackdropBorderColor(0.15, 0.49, 1, 1)
+	frame:SetBackdropColor(153/255, 204/255, 51/255, 1)
+	frame:SetBackdropBorderColor(153/255, 204/255, 51/255, 1)
 
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bg:SetTexCoord(0, 0.546875, 0.28515, 0.5664)
-    frame.bg:SetWidth(70)
-    frame.bg:SetHeight(72)
-	frame.bg:SetTexture("Interface\\LFGFrame\\UI-LFG-DUNGEONTOAST")
-    frame.bg:SetPoint("BOTTOMLEFT")
-
-    frame.bg1 = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bg1:SetTexCoord(0.5546875, 0.671875, 0.28515, 0.5664)
-    frame.bg1:SetWidth(15)
-    frame.bg1:SetHeight(72)
-	frame.bg1:SetTexture("Interface\\LFGFrame\\UI-LFG-DUNGEONTOAST")
-    frame.bg1:SetPoint("BOTTOMRIGHT")
-
-    frame.bg2 = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bg2:SetTexCoord(0, 0.9921875, 0, 0.28125)
-    frame.bg2:SetWidth(127)
-    frame.bg2:SetHeight(72)
-	frame.bg2:SetTexture("Interface\\LFGFrame\\UI-LFG-DUNGEONTOAST")
-    frame.bg2:SetPoint("BOTTOMLEFT", 69, 0)
-
-    frame.bg3 = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bg3:SetTexCoord(0, 0.9921875, 0.58203, 0.86328)
-    frame.bg3:SetWidth(127)
-    frame.bg3:SetHeight(72)
-	frame.bg3:SetTexture("Interface\\LFGFrame\\UI-LFG-DUNGEONTOAST")
-    frame.bg3:SetPoint("BOTTOMRIGHT", -14, 0)
-
+    frame.bg:SetTexCoord(0, .605, 0, .703)
+	frame.bg:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Alert-Background")
+    frame.bg:SetAllPoints(true)
 	
-	--achievement popup 1
-	local frameAch1 = CreateFrame("Frame", "xanAchievementMover_Ach1", xanAchievementMover_Anchor)
+	frame:Hide()
 
-	frameAch1:SetFrameStrata("DIALOG")
-	frameAch1:SetWidth(300)
-	frameAch1:SetHeight(88)
-	frameAch1:ClearAllPoints()
-	frameAch1:SetPoint("CENTER", xanAchievementMover_Anchor, "BOTTOM", 0, -(frame:GetHeight()/2 + 4) )
-			
-	frameAch1:EnableMouse(true)
-	frameAch1:SetMovable(true)
-
-	frameAch1:SetScript("OnMouseDown",function(self, button)
-		if button == "LeftButton" then
-			self:GetParent().isMoving = true
-			self:GetParent():StartMoving()
-		end
-		
-	end)
-	frameAch1:SetScript("OnMouseUp",function(self)
-		if( self:GetParent().isMoving ) then
-			self:GetParent().isMoving = nil
-			self:GetParent():StopMovingOrSizing()
-			f:SaveLayout(self:GetParent():GetName())
-			f:SaveLayout("xanAchievementMover_Ach1")
-		end
-	end)
-
-	local stringAch1 = frameAch1:CreateFontString()
-	stringAch1:SetAllPoints(frameAch1)
-	stringAch1:SetFontObject("GameFontNormalSmall")
-	stringAch1:SetText(L["xanAchievementMover [ACHIEVEMENT 1]"])
-
-	frameAch1:SetBackdrop({
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 5, right = 5, top = 5, bottom = 5 }
-	})
-	frameAch1:SetBackdropColor(153/255, 204/255, 51/255, 1)
-	frameAch1:SetBackdropBorderColor(153/255, 204/255, 51/255, 1)
-	
-    frameAch1.bg = frameAch1:CreateTexture(nil, "BACKGROUND")
-    frameAch1.bg:SetTexCoord(0, .605, 0, .703)
-	frameAch1.bg:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Alert-Background")
-    frameAch1.bg:SetAllPoints(true)
-
-	--achievement popup 2
-	local frameAch2 = CreateFrame("Frame", "xanAchievementMover_Ach2", xanAchievementMover_Anchor)
-
-	frameAch2:SetFrameStrata("DIALOG")
-	frameAch2:SetWidth(300)
-	frameAch2:SetHeight(88)
-	frameAch2:ClearAllPoints()
-	frameAch2:SetPoint("TOPLEFT", frameAch1, "BOTTOMLEFT", 0, 4)
-			
-	frameAch2:EnableMouse(true)
-	frameAch2:SetMovable(true)
-
-	frameAch2:SetScript("OnMouseDown",function(self, button)
-		if button == "LeftButton" then
-			self:GetParent().isMoving = true
-			self:GetParent():StartMoving()
-		end
-		
-	end)
-	frameAch2:SetScript("OnMouseUp",function(self)
-		if( self:GetParent().isMoving ) then
-			self:GetParent().isMoving = nil
-			self:GetParent():StopMovingOrSizing()
-			f:SaveLayout(self:GetParent():GetName())
-			f:SaveLayout("xanAchievementMover_Ach1")
-		end
-	end)
-
-	local stringAch2 = frameAch2:CreateFontString()
-	stringAch2:SetAllPoints(frameAch2)
-	stringAch2:SetFontObject("GameFontNormalSmall")
-	stringAch2:SetText(L["xanAchievementMover [ACHIEVEMENT 2]"])
-
-	frameAch2:SetBackdrop({
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 5, right = 5, top = 5, bottom = 5 }
-	})
-	frameAch2:SetBackdropColor(153/255, 204/255, 51/255, 1)
-	frameAch2:SetBackdropBorderColor(153/255, 204/255, 51/255, 1)
-	
-    frameAch2.bg = frameAch2:CreateTexture(nil, "BACKGROUND")
-    frameAch2.bg:SetTexCoord(0, .605, 0, .703)
-	frameAch2.bg:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Alert-Background")
-    frameAch2.bg:SetAllPoints(true)
-	
-	frame:Hide()	
 end
 
 function f:SaveLayout(frame)
@@ -348,29 +257,6 @@ function f:RestoreLayout(frame)
 	_G[frame]:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
 end
 
-function f:LoadPositionHook(frame, frameAttach)
-	if type(frame) ~= "string" then return end
-	if type(frameAttach) ~= "string" then return end
-	if not _G[frame] then return end
-	if not _G[frameAttach] then return end
-	if not XanAM_DB then XanAM_DB = {} end
-
-	local opt = XanAM_DB[frame] or nil
-
-	if not opt then
-		XanAM_DB[frame] = {
-			["point"] = "CENTER",
-			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
-		}
-		opt = XanAM_DB[frame]
-	end
-
-	_G[frame]:ClearAllPoints()
-	_G[frame]:SetPoint(opt.point, _G[frameAttach], opt.relativePoint, opt.xOfs, opt.yOfs)
-	
-end
 
 ------------------------------
 --      Event Handlers      --
