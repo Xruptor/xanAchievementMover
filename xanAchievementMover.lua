@@ -81,45 +81,46 @@ UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil;
  
 local function customFixAnchors(self, ...)
 	
-	--DEBUG ONLY
-	---------------------------------
---[[ 	
-	local alertPool
-
-	for k, v in pairs(AlertFrame) do
-		if k then Debug("Parent: "..tostring(k)) end
-	end
-	
-	for k, v in pairs(self) do
-		if k then Debug("Self: "..tostring(k)) end
-	end
-	
-	for i, alertFrameSubSystem in ipairs(self.alertFrameSubSystems) do
-		
-		
-		alertPool = alertFrameSubSystem.alertFramePool
-		
-		if alertPool then
-		
-			-- for k, v in pairs(alertPool) do
-				-- if k then Debug("Pool: "..tostring(k)) end
-			-- end
-
-			for alertFrameObj in alertPool:EnumerateActive() do
-				local nameText = alertFrameObj.Name
-
-				for k, v in pairs(alertFrameObj) do
-					if k then Debug("alertFrameObj: "..tostring(k)) end
-				end
-			end
-			
-		end
-	
-	end
-]]
-
 	AlertFrame:ClearAllPoints()
 	AlertFrame:SetPoint("CENTER", xanAchievementMover_Anchor, "BOTTOM", 0, 0)
+	
+	--DEBUG ONLY
+	---------------------------------
+	--[[ 	
+		local alertPool
+
+		for k, v in pairs(AlertFrame) do
+			if k then Debug("Parent: "..tostring(k)) end
+		end
+		
+		for k, v in pairs(self) do
+			if k then Debug("Self: "..tostring(k)) end
+		end
+		
+		for i, alertFrameSubSystem in ipairs(self.alertFrameSubSystems) do
+			
+			
+			alertPool = alertFrameSubSystem.alertFramePool
+			
+			if alertPool then
+			
+				-- for k, v in pairs(alertPool) do
+					-- if k then Debug("Pool: "..tostring(k)) end
+				-- end
+
+				for alertFrameObj in alertPool:EnumerateActive() do
+					local nameText = alertFrameObj.Name
+
+					for k, v in pairs(alertFrameObj) do
+						if k then Debug("alertFrameObj: "..tostring(k)) end
+					end
+				end
+				
+			end
+		
+		end
+	]]
+
 end
 
 hooksecurefunc(AlertFrame,"UpdateAnchors", customFixAnchors)
