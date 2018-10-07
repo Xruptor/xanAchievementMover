@@ -1,14 +1,18 @@
 
-local L = XANACHIEVEMENTMOVER_L
+local ADDON_NAME, addon = ...
+if not _G[ADDON_NAME] then
+	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent)
+end
+addon = _G[ADDON_NAME]
 
-local f = CreateFrame("frame","xanAchievementMover",UIParent)
-f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
+addon:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
-local debugf = tekDebug and tekDebug:GetFrame("xanAchievementMover")
+local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
 local function Debug(...)
     if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
 end
 
+local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 
 --[[
 	
@@ -137,29 +141,26 @@ hooksecurefunc(AlertFrame,"UpdateAnchors", customFixAnchors)
 --      Enable      --
 ----------------------
 
-function f:PLAYER_LOGIN()
+function addon:PLAYER_LOGIN()
 
 	if not XanAM_DB then XanAM_DB = {} end
 	
-	self:DrawAnchor()
+	local anchor = self:DrawAnchor()
 	self:RestoreLayout("xanAchievementMover_Anchor")
 
 	SLASH_XANACHIEVEMENTMOVER1 = "/xam";
-	SlashCmdList["XANACHIEVEMENTMOVER"] = xanAchievementMover_SlashCommand;
+	SlashCmdList["XANACHIEVEMENTMOVER"] = function(cmd) addon.aboutPanel.btnAnchor.func() end;
 	
-	local ver = GetAddOnMetadata("xanAchievementMover","Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format(L["|cFF99CC33%s|r [v|cFFDF2B2B%s|r] loaded:   /xam"], "xanAchievementMover", ver or "1.0"))
+	local ver = GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
+	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xam", ADDON_NAME, ver or "1.0"))
+	
+	anchor.isLoaded = true
 	
 	self:UnregisterEvent("PLAYER_LOGIN")
 	self.PLAYER_LOGIN = nil
 end
 
-function xanAchievementMover_SlashCommand(cmd)
-	if not _G["xanAchievementMover_Anchor"] then return end
-	_G["xanAchievementMover_Anchor"]:Show()
-end
-
-function f:DrawAnchor()
+function addon:DrawAnchor()
 
 	local frame = CreateFrame("Frame", "xanAchievementMover_Anchor", UIParent)
 
@@ -184,14 +185,21 @@ function f:DrawAnchor()
 			self.isMoving = nil
 			self:StopMovingOrSizing()
 
-			f:SaveLayout(self:GetName())
+			addon:SaveLayout(self:GetName())
+		end
+	end)
+	
+	frame:SetScript("OnHide",function(self)
+		if self.wasToggled and self.isLoaded then
+			addon:SaveLayout(self:GetName())
+			self.wasToggled = nil
 		end
 	end)
 
 	local stringA = frame:CreateFontString()
 	stringA:SetAllPoints(frame)
 	stringA:SetFontObject("GameFontNormalSmall")
-	stringA:SetText(L["xanAchievementMover \n\nRight click when finished dragging"])
+	stringA:SetText(L.DragFrameInfo)
 
 	frame:SetBackdrop({
 			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
@@ -210,16 +218,17 @@ function f:DrawAnchor()
 	
 	frame:Hide()
 
+	return frame
 end
 
-function f:SaveLayout(frame)
+function addon:SaveLayout(frame)
 	if type(frame) ~= "string" then return end
 	if not _G[frame] then return end
 	if not XanAM_DB then XanAM_DB = {} end
 	
 	local opt = XanAM_DB[frame] or nil
 
-	if not opt then
+	if not opt or not opt.point or not opt.xOfs then
 		XanAM_DB[frame] = {
 			["point"] = "CENTER",
 			["relativePoint"] = "CENTER",
@@ -237,14 +246,14 @@ function f:SaveLayout(frame)
 	opt.yOfs = yOfs
 end
 
-function f:RestoreLayout(frame)
+function addon:RestoreLayout(frame)
 	if type(frame) ~= "string" then return end
 	if not _G[frame] then return end
 	if not XanAM_DB then XanAM_DB = {} end
 
 	local opt = XanAM_DB[frame] or nil
 
-	if not opt then
+	if not opt or not opt.point or not opt.xOfs then
 		XanAM_DB[frame] = {
 			["point"] = "CENTER",
 			["relativePoint"] = "CENTER",
@@ -263,4 +272,4 @@ end
 --      Event Handlers      --
 ------------------------------
 
-if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end
+if IsLoggedIn() then addon:PLAYER_LOGIN() else addon:RegisterEvent("PLAYER_LOGIN") end
