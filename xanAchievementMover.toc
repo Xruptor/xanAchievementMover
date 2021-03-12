@@ -1,8 +1,8 @@
-## Interface: 90001
+## Interface: 90005
 ## Title: xanAchievementMover
 ## Notes: A simple addon that allows the user to move the Achievement and Dungeon notifications.
 ## Author: Xruptor
-## Version: 2.3
+## Version: 2.4
 ## X-Curse-Project-ID: 39397
 ## X-WoWI-ID: 21087
 ## OptionalDeps: tekDebug
