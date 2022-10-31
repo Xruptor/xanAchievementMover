@@ -10,6 +10,17 @@ local function Debug(...)
     if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
 end
 
+local WOW_PROJECT_ID = _G.WOW_PROJECT_ID
+local WOW_PROJECT_MAINLINE = _G.WOW_PROJECT_MAINLINE
+local WOW_PROJECT_CLASSIC = _G.WOW_PROJECT_CLASSIC
+--local WOW_PROJECT_BURNING_CRUSADE_CLASSIC = _G.WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+local WOW_PROJECT_WRATH_CLASSIC = _G.WOW_PROJECT_WRATH_CLASSIC
+
+addon.IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+--BSYC.IsTBC_C = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+addon.IsWLK_C = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+
 addon:RegisterEvent("ADDON_LOADED")
 addon:SetScript("OnEvent", function(self, event, ...)
 	if event == "ADDON_LOADED" or event == "PLAYER_LOGIN" then
@@ -34,8 +45,8 @@ end)
 
 local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 
---[[
-	
+--[=[
+
 	WOW uses an AlertSystem to push out alerts on the screen.
 	The two files are AlertFrames.lua and AlertFrameSystems.lua
 	https://github.com/tomrus88/BlizzardInterfaceCode/blob/49f059f549c48d5811b13771a52c8a4cfff3b227/Interface/FrameXML/AlertFrameSystems.lua
@@ -67,38 +78,34 @@ local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 	end
 
 	Examples to push alerts on screen:
-	/run LootAlertSystem:AddAlert("|cff9d9d9d|Hitem:7073:0:0:0:0:0:0:0:80:0:0:0:0|h[Broken Fang]|h|r", 1, specID, 3, 1, 3, Awesome);
-	 
-	/run MoneyWonAlertSystem:AddAlert(815)
-	 
+	
+	--Queued Alerts:
 	/run AchievementAlertSystem:AddAlert(5192)
-	 
-	/run CriteriaAlertSystem:ShowAlert(80,1)
-	 
+	/run CriteriaAlertSystem:AddAlert(9023, 'Doing great!')
+	/run LootAlertSystem:AddAlert('|cffa335ee|Hitem:18832::::::::::|h[Brutality Blade]|h|r', 1, 1, 1, 1, false, false, 0, false, false)
+	/run LootUpgradeAlertSystem:AddAlert('|cffa335ee|Hitem:18832::::::::::|h[Brutality Blade]|h|r', 1, 1, 1, nil, nil, false)
+	/run MoneyWonAlertSystem:AddAlert(81500)
+	/run NewRecipeLearnedAlertSystem:AddAlert(204)
+
+	--Simple Alerts
 	/run GuildChallengeAlertSystem:AddAlert(3, 2, 5)
-	 
-	/run DungeonCompletionAlertSystem:AddAlert()
-	 
-	/run InvasionAlertSystem:AddAlert(1,20)
-	 
-	/run DigsiteCompleteAlertSystem:AddAlert(1)
-	 
-	 /run LootUpgradeAlertSystem:AddAlert("|cff9d9d9d|Hitem:7073:0:0:0:0:0:0:0:80:0:0:0:0|h[Broken Fang]|h|r", 1, specID, 3, "Cesaor", 3, Awesome);
-	 
-	 /run GarrisonFollowerAlertSystem:AddAlert(112, "Cool Guy", "100", 3, 1)
-	 
-	 /run GarrisonShipFollowerAlertSystem:AddAlert(592, "Test", "Transport", "GarrBuilding_Barracks_1_H", 3, 2, 1)
-	 
-	 /run GarrisonBuildingAlertSystem:AddAlert("miau")
-	 
-	 /run WorldQuestCompleteAlertSystem:AddAlert(112)
- 
-]]
-	
-	
-UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil; 
+	/run InvasionAlertSystem:AddAlert(678, DUNGEON_FLOOR_THENEXUS1, true, 1, 1)
+	/run WorldQuestCompleteAlertSystem:AddAlert(AlertFrameMixin:BuildQuestData(42114))
+	/run GarrisonTalentAlertSystem:AddAlert(3, C_Garrison.GetTalentInfo(370))
+	/run GarrisonBuildingAlertSystem:AddAlert(GARRISON_CACHE)
+	/run GarrisonFollowerAlertSystem:AddAlert(204, 'Ben Stone', 90, 3, false)
+	/run GarrisonMissionAlertSystem:AddAlert(681) (Requires a mission ID that is in your mission list.)
+	/run GarrisonShipFollowerAlertSystem:AddAlert(592, 'Test', 'Transport', 'GarrBuilding_Barracks_1_H', 3, 2, 1)
+	/run LegendaryItemAlertSystem:AddAlert('|cffa335ee|Hitem:18832::::::::::|h[Brutality Blade]|h|r')
+	/run EntitlementDeliveredAlertSystem:AddAlert('', [[Interface\Icons\Ability_pvp_gladiatormedallion]], TRINKET0SLOT, 214)
+	/run RafRewardDeliveredAlertSystem:AddAlert('', [[Interface\Icons\Ability_pvp_gladiatormedallion]], TRINKET0SLOT, 214)
+	/run DigsiteCompleteAlertSystem:AddAlert('Human')
 
-
+	--Bonus Rolls
+	/run BonusRollFrame_CloseBonusRoll()
+	/run BonusRollFrame_StartBonusRoll(242969,'test',10,515,1273,14) --515 is darkmoon token, change to another currency id you have
+]=]	
+	
 ----------------------
 --  POSITION FIX    --
 ----------------------
@@ -110,7 +117,7 @@ local function customFixAnchors(self, ...)
 	
 	--DEBUG ONLY
 	---------------------------------
-	--[[ 	
+	--[=[
 		local alertPool
 
 		for k, v in pairs(AlertFrame) do
@@ -143,7 +150,7 @@ local function customFixAnchors(self, ...)
 			end
 		
 		end
-	]]
+	]=]
 
 end
 
@@ -162,6 +169,10 @@ hooksecurefunc(AlertFrame,"UpdateAnchors", customFixAnchors)
 ----------------------
 
 function addon:EnableAddon()
+
+	if not self.IsRetail then
+		UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil
+	end
 
 	if not XanAM_DB then XanAM_DB = {} end
 	
