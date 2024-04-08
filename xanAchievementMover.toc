@@ -7,7 +7,7 @@
 ## Notes-zhCN: 允许移动地下城/成就通知横幅的简单插件。
 ## Notes-zhTW: 允許移動地下城/成就通知橫幅的簡單插件。
 ## Author: Xruptor
-## Version: 3.9
+## Version: 4.0
 ## IconTexture: 311945
 ## X-Curse-Project-ID: 39397
 ## X-WoWI-ID: 21087
