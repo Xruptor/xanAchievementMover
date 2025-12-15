@@ -1,10 +1,10 @@
-## Interface: 110207, 50502, 40402, 30405
+## Interface: 110207, 50503, 40402, 38000, 30405
 ## Title: xanAchievementMover
 ## Notes: A simple addon that allows the user to move the Achievement and Dungeon notifications.
 ## Notes-zhCN: 允许移动地下城/成就通知横幅的简单插件。
 ## Notes-zhTW: 允許移動地下城/成就通知橫幅的簡單插件。
 ## Author: Xruptor
-## Version: 4.5
+## Version: 4.6
 ## IconTexture: 311945
 ## X-Curse-Project-ID: 39397
 ## X-WoWI-ID: 21087
