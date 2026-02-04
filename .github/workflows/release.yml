@@ -33,14 +33,19 @@ jobs:
 
     # "steps" holds a list of all the steps needed to package and release our AddOn
     steps:
-
       # we first have to clone the AddOn project, this is a required step
       - name: Clone project
         uses: actions/checkout@v1
- 
+
       # Package and release the retail version
       - name: Create Retail Package
         uses: BigWigsMods/packager@master
+
+      # Package and release the Classic version
+      - name: Create Classic Package
+        uses: BigWigsMods/packager@master
+        with:
+          args: -g classic
 
        # Package and release the Cata version
       - name: Create Cata Package

@@ -1,14 +1,14 @@
 
-local ADDON_NAME, addon = ...
+local ADDON_NAME, private = ...
 if not _G[ADDON_NAME] then
 	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate")
 end
-addon = _G[ADDON_NAME]
+local addon = _G[ADDON_NAME]
 
-local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
-local function Debug(...)
-    if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
-end
+-- Locale files load with the addon's private table (2nd return from "...").
+addon.private = private
+addon.L = (private and private.L) or addon.L or {}
+local L = addon.L
 
 local WOW_PROJECT_ID = _G.WOW_PROJECT_ID
 local WOW_PROJECT_MAINLINE = _G.WOW_PROJECT_MAINLINE
@@ -43,7 +43,29 @@ addon:SetScript("OnEvent", function(self, event, ...)
 	end
 end)
 
-local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
+local function AchievementsAvailable()
+	if type(_G.GetAchievementInfo) == "function" then
+		return true
+	end
+	if _G.C_AchievementInfo and type(_G.C_AchievementInfo.GetAchievementInfo) == "function" then
+		return true
+	end
+	return false
+end
+
+local function DisableForNoAchievements()
+	local message = L.NoAchievementsDisabled or "Addon disabled: Achievements are not enabled on this server."
+	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+		DEFAULT_CHAT_FRAME:AddMessage(message)
+	else
+		print(message)
+	end
+	if C_AddOns and C_AddOns.DisableAddOn then
+		C_AddOns.DisableAddOn(ADDON_NAME)
+	elseif type(DisableAddOn) == "function" then
+		DisableAddOn(ADDON_NAME)
+	end
+end
 
 --[=[
 
@@ -169,6 +191,11 @@ hooksecurefunc(AlertFrame,"UpdateAnchors", customFixAnchors)
 ----------------------
 
 function addon:EnableAddon()
+	if not AchievementsAvailable() then
+		DisableForNoAchievements()
+		self:UnregisterAllEvents()
+		return
+	end
 
 	if not self.IsRetail then
 		UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil
