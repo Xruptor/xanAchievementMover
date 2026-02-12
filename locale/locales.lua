@@ -21,6 +21,9 @@ function private:NewLocale(locale, isDefault)
 
 	if isDefault then
 		store.default = store.default or {}
+		store._cachedLocale = nil
+		store._cachedCurrent = nil
+		store._cachedDefault = nil
 		return store.default
 	end
 
@@ -29,16 +32,34 @@ function private:NewLocale(locale, isDefault)
 	end
 
 	store.locales[locale] = store.locales[locale] or {}
+	store._cachedLocale = nil
+	store._cachedCurrent = nil
 	return store.locales[locale]
+end
+
+local function BuildLocale(store)
+	local L = store.locales[store.current] or store.default or {}
+	if store.default and L ~= store.default then
+		if getmetatable(L) == nil then
+			setmetatable(L, { __index = store.default })
+		end
+	end
+	return L
 end
 
 function private:GetLocale()
 	local store = private._locales
-	local L = store.locales[store.current] or store.default or {}
-	if store.default and L ~= store.default then
-		return setmetatable(L, { __index = store.default })
+	if store._cachedLocale
+		and store._cachedCurrent == store.current
+		and store._cachedDefault == store.default
+	then
+		return store._cachedLocale
 	end
-	return L
+
+	store._cachedCurrent = store.current
+	store._cachedDefault = store.default
+	store._cachedLocale = BuildLocale(store)
+	return store._cachedLocale
 end
 
 private.L = private.L or setmetatable({}, {

@@ -1,10 +1,17 @@
 local ADDON_NAME, private = ...
+local _G = _G
+local CreateFrame = _G.CreateFrame
+local UIParent = _G.UIParent
+local BackdropTemplate = _G.BackdropTemplateMixin and "BackdropTemplate" or nil
+local C_AddOns = _G.C_AddOns
+local GetAddOnMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
+
 if not _G[ADDON_NAME] then
-	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate")
+	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplate)
 end
 local addon = _G[ADDON_NAME]
 
-addon.configFrame = CreateFrame("frame", ADDON_NAME.."_config_eventFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+addon.configFrame = CreateFrame("frame", ADDON_NAME.."_config_eventFrame", UIParent, BackdropTemplate)
 local configFrame = addon.configFrame
 
 addon.private = private
@@ -25,16 +32,6 @@ local function addConfigEntry(objEntry, adjustX, adjustY)
 	lastObject = objEntry
 end
 
-local chkBoxIndex = 0
-local function createCheckbutton(parentFrame, displayText)
-	chkBoxIndex = chkBoxIndex + 1
-	
-	local checkbutton = CreateFrame("CheckButton", ADDON_NAME.."_config_chkbtn_" .. chkBoxIndex, parentFrame, "ChatConfigCheckButtonTemplate")
-	getglobal(checkbutton:GetName() .. 'Text'):SetText(" "..displayText)
-	
-	return checkbutton
-end
-
 local buttonIndex = 0
 local function createButton(parentFrame, displayText)
 	buttonIndex = buttonIndex + 1
@@ -47,58 +44,20 @@ local function createButton(parentFrame, displayText)
 	return button
 end
 
-local sliderIndex = 0
-local function createSlider(parentFrame, displayText, minVal, maxVal)
-	sliderIndex = sliderIndex + 1
-	
-	local SliderBackdrop  = {
-		bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-		edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-		tile = true, tileSize = 8, edgeSize = 8,
-		insets = { left = 3, right = 3, top = 6, bottom = 6 }
-	}
-	
-	local slider = CreateFrame("Slider", ADDON_NAME.."_config_slider_" .. sliderIndex, parentFrame, BackdropTemplateMixin and "BackdropTemplate")
-	slider:SetOrientation("HORIZONTAL")
-	slider:SetHeight(15)
-	slider:SetWidth(300)
-	slider:SetHitRectInsets(0, 0, -10, 0)
-	slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-	slider:SetMinMaxValues(minVal or 0, maxVal or 100)
-	slider:SetValue(0)
-	slider:SetBackdrop(SliderBackdrop)
-
-	local label = slider:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	label:SetPoint("CENTER", slider, "CENTER", 0, 16)
-	label:SetJustifyH("CENTER")
-	label:SetHeight(15)
-	label:SetText(displayText)
-
-	local lowtext = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	lowtext:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 2, 3)
-	lowtext:SetText(minVal)
-
-	local hightext = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	hightext:SetPoint("TOPRIGHT", slider, "BOTTOMRIGHT", -2, 3)
-	hightext:SetText(maxVal)
-	
-	local currVal = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	currVal:SetPoint("TOPRIGHT", slider, "BOTTOMRIGHT", 45, 12)
-	currVal:SetText('(?)')
-	slider.currVal = currVal
-	
-	return slider
-end
-
 local function LoadAboutFrame()
 
 	--Code inspired from tekKonfigAboutPanel
-	local about = CreateFrame("Frame", ADDON_NAME.."AboutPanel", InterfaceOptionsFramePanelContainer, BackdropTemplateMixin and "BackdropTemplate")
+	if addon.aboutPanel then
+		return addon.aboutPanel
+	end
+
+	local parent = _G.InterfaceOptionsFramePanelContainer or _G.SettingsPanel or UIParent
+	local about = CreateFrame("Frame", ADDON_NAME.."AboutPanel", parent, BackdropTemplate)
 	about.name = ADDON_NAME
 	about:Hide()
 	
     local fields = {"Version", "Author"}
-	local notes = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Notes")
+	local notes = (GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "Notes")) or ""
 
     local title = about:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 
@@ -112,11 +71,12 @@ local function LoadAboutFrame()
 	subtitle:SetNonSpaceWrap(true)
 	subtitle:SetJustifyH("LEFT")
 	subtitle:SetJustifyV("TOP")
-	subtitle:SetText(notes)
+	subtitle:SetText(notes or "")
 
 	local anchor
-	for _,field in pairs(fields) do
-		local val = C_AddOns.GetAddOnMetadata(ADDON_NAME, field)
+	for i = 1, #fields do
+		local field = fields[i]
+		local val = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, field)
 		if val then
 			local title = about:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 			title:SetWidth(75)
@@ -147,20 +107,15 @@ local function LoadAboutFrame()
 end
 
 function configFrame:EnableConfig()
-	
+	if addon.aboutPanel and addon.aboutPanel.btnAnchor then
+		return
+	end
+
 	addon.aboutPanel = LoadAboutFrame()
 	
 	--anchor
 	local btnAnchor = createButton(addon.aboutPanel, L.AnchorText)
-	btnAnchor.func = function()
-		if not _G["xanAchievementMover_Anchor"] then return end
-		if _G["xanAchievementMover_Anchor"]:IsVisible() then
-			_G["xanAchievementMover_Anchor"]:Hide()
-		else
-			_G["xanAchievementMover_Anchor"]:Show()
-			_G["xanAchievementMover_Anchor"].wasToggled = true
-		end
-	end
+	btnAnchor.func = function() addon:ToggleAnchor() end
 	btnAnchor:SetScript("OnClick", btnAnchor.func)
 	
 	addConfigEntry(btnAnchor, 0, -30)

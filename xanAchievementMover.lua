@@ -1,7 +1,23 @@
 
 local ADDON_NAME, private = ...
+local _G = _G
+local CreateFrame = _G.CreateFrame
+local UIParent = _G.UIParent
+local BackdropTemplate = _G.BackdropTemplateMixin and "BackdropTemplate" or nil
+local hooksecurefunc = _G.hooksecurefunc
+local IsLoggedIn = _G.IsLoggedIn
+local DEFAULT_CHAT_FRAME = _G.DEFAULT_CHAT_FRAME
+local print = _G.print
+local type = _G.type
+local C_AddOns = _G.C_AddOns
+local GetAddOnMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
+local DisableAddOn = _G.DisableAddOn
+local AlertFrame = _G.AlertFrame
+
+local ANCHOR_NAME = "xanAchievementMover_Anchor"
+
 if not _G[ADDON_NAME] then
-	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate")
+	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplate)
 end
 local addon = _G[ADDON_NAME]
 
@@ -21,25 +37,37 @@ addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 --BSYC.IsTBC_C = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 addon.IsWLK_C = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 
+local function PrintMessage(message)
+	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+		DEFAULT_CHAT_FRAME:AddMessage(message)
+	else
+		print(message)
+	end
+end
+
+local eventHandlers = {}
+
+function eventHandlers:ADDON_LOADED(addonName)
+	if addonName ~= ADDON_NAME then return end
+	self:UnregisterEvent("ADDON_LOADED")
+	self:RegisterEvent("PLAYER_LOGIN")
+end
+
+function eventHandlers:PLAYER_LOGIN()
+	if not IsLoggedIn() then return end
+	self:EnableAddon()
+	self:UnregisterEvent("PLAYER_LOGIN")
+end
+
 addon:RegisterEvent("ADDON_LOADED")
 addon:SetScript("OnEvent", function(self, event, ...)
-	if event == "ADDON_LOADED" or event == "PLAYER_LOGIN" then
-		if event == "ADDON_LOADED" then
-			local arg1 = ...
-			if arg1 and arg1 == ADDON_NAME then
-				self:UnregisterEvent("ADDON_LOADED")
-				self:RegisterEvent("PLAYER_LOGIN")
-			end
-			return
-		end
-		if IsLoggedIn() then
-			self:EnableAddon(event, ...)
-			self:UnregisterEvent("PLAYER_LOGIN")
-		end
-		return
+	local handler = eventHandlers[event]
+	if handler then
+		return handler(self, ...)
 	end
-	if self[event] then
-		return self[event](self, event, ...)
+	local method = self[event]
+	if method then
+		return method(self, event, ...)
 	end
 end)
 
@@ -55,15 +83,10 @@ end
 
 local function DisableForNoAchievements()
 	local message = L.NoAchievementsDisabled or "Addon disabled: Achievements are not enabled on this server."
-	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-		DEFAULT_CHAT_FRAME:AddMessage(message)
-	else
-		print(message)
-	end
-	if C_AddOns and C_AddOns.DisableAddOn then
-		C_AddOns.DisableAddOn(ADDON_NAME)
-	elseif type(DisableAddOn) == "function" then
-		DisableAddOn(ADDON_NAME)
+	PrintMessage(message)
+	local disableAddon = (C_AddOns and C_AddOns.DisableAddOn) or DisableAddOn
+	if type(disableAddon) == "function" then
+		disableAddon(ADDON_NAME)
 	end
 end
 
@@ -133,9 +156,12 @@ end
 ----------------------
  
 local function customFixAnchors(self, ...)
-	
+	if not AlertFrame then return end
+	local anchor = _G[ANCHOR_NAME]
+	if not anchor then return end
+
 	AlertFrame:ClearAllPoints()
-	AlertFrame:SetPoint("CENTER", xanAchievementMover_Anchor, "BOTTOM", 0, 0)
+	AlertFrame:SetPoint("CENTER", anchor, "BOTTOM", 0, 0)
 	
 	--DEBUG ONLY
 	---------------------------------
@@ -176,7 +202,9 @@ local function customFixAnchors(self, ...)
 
 end
 
-hooksecurefunc(AlertFrame,"UpdateAnchors", customFixAnchors)
+if AlertFrame and AlertFrame.UpdateAnchors then
+	hooksecurefunc(AlertFrame, "UpdateAnchors", customFixAnchors)
+end
 
 -- hooksecurefunc(CriteriaAlertSystem,"ShowAlert", function()
 	-- Debug("CriteriaAlertSystem (ShowAlert)")
@@ -197,33 +225,52 @@ function addon:EnableAddon()
 		return
 	end
 
-	if not self.IsRetail then
-		UIPARENT_MANAGED_FRAME_POSITIONS["AlertFrame"] = nil
+	if not self._managedOverride then
+		local managedPositions = _G.UIPARENT_MANAGED_FRAME_POSITIONS
+		if type(managedPositions) == "table" then
+			managedPositions["AlertFrame"] = nil
+		end
+		self._managedOverride = true
 	end
 
-	if not XanAM_DB then XanAM_DB = {} end
-	
-	local anchor = self:DrawAnchor()
-	self:RestoreLayout("xanAchievementMover_Anchor")
+	XanAM_DB = XanAM_DB or {}
 
-	SLASH_XANACHIEVEMENTMOVER1 = "/xam";
-	SlashCmdList["XANACHIEVEMENTMOVER"] = function(cmd) addon.aboutPanel.btnAnchor.func() end;
+	local anchor = self:DrawAnchor()
+	self:RestoreLayout(ANCHOR_NAME)
+
+	SLASH_XANACHIEVEMENTMOVER1 = "/xam"
+	SlashCmdList["XANACHIEVEMENTMOVER"] = function()
+		self:ToggleAnchor()
+	end
 	
 	if addon.configFrame then addon.configFrame:EnableConfig() end
 	
-	local ver = C_AddOns.GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xam", ADDON_NAME, ver or "1.0"))
+	local ver = (GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "Version")) or "1.0"
+	PrintMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xam", ADDON_NAME, ver))
 	
 	anchor.isLoaded = true
 end
 
+function addon:ToggleAnchor()
+	local anchor = _G[ANCHOR_NAME]
+	if not anchor then return end
+	if anchor:IsVisible() then
+		anchor:Hide()
+	else
+		anchor:Show()
+		anchor.wasToggled = true
+	end
+end
+
 function addon:DrawAnchor()
 
-	local frame = CreateFrame("Frame", "xanAchievementMover_Anchor", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+	local frame = _G[ANCHOR_NAME]
+	if frame then return frame end
+
+	frame = CreateFrame("Frame", ANCHOR_NAME, UIParent, BackdropTemplate)
 
 	frame:SetFrameStrata("DIALOG")
-	frame:SetWidth(300)
-	frame:SetHeight(88)
+	frame:SetSize(300, 88)
 
 	frame:EnableMouse(true)
 	frame:SetMovable(true)
@@ -258,15 +305,17 @@ function addon:DrawAnchor()
 	stringA:SetFontObject("GameFontNormalSmall")
 	stringA:SetText(L.DragFrameInfo)
 
-	frame:SetBackdrop({
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 5, right = 5, top = 5, bottom = 5 }
-	})
-	frame:SetBackdropColor(153/255, 204/255, 51/255, 1)
-	frame:SetBackdropBorderColor(153/255, 204/255, 51/255, 1)
+	if frame.SetBackdrop then
+		frame:SetBackdrop({
+				edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+				tile = true,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 5, right = 5, top = 5, bottom = 5 }
+		})
+		frame:SetBackdropColor(153/255, 204/255, 51/255, 1)
+		frame:SetBackdropBorderColor(153/255, 204/255, 51/255, 1)
+	end
 
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
     frame.bg:SetTexCoord(0, .605, 0, .703)
@@ -278,25 +327,30 @@ function addon:DrawAnchor()
 	return frame
 end
 
+local function EnsureLayout(frameName)
+	XanAM_DB = XanAM_DB or {}
+	local opt = XanAM_DB[frameName]
+	if not opt then
+		opt = {
+			point = "CENTER",
+			relativePoint = "CENTER",
+			xOfs = 0,
+			yOfs = 0,
+		}
+		XanAM_DB[frameName] = opt
+	end
+	return opt
+end
+
 function addon:SaveLayout(frame)
 	if type(frame) ~= "string" then return end
-	if not _G[frame] then return end
-	if not XanAM_DB then XanAM_DB = {} end
-	
-	local opt = XanAM_DB[frame] or nil
+	local frameObj = _G[frame]
+	if not frameObj then return end
 
-	if not opt or not opt.point or not opt.xOfs then
-		XanAM_DB[frame] = {
-			["point"] = "CENTER",
-			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
-		}
-		opt = XanAM_DB[frame]
-		return
-	end
+	local opt = EnsureLayout(frame)
 
-	local point, relativeTo, relativePoint, xOfs, yOfs = _G[frame]:GetPoint()
+	local point, _, relativePoint, xOfs, yOfs = frameObj:GetPoint()
+	if not point then return end
 	opt.point = point
 	opt.relativePoint = relativePoint
 	opt.xOfs = xOfs
@@ -305,21 +359,11 @@ end
 
 function addon:RestoreLayout(frame)
 	if type(frame) ~= "string" then return end
-	if not _G[frame] then return end
-	if not XanAM_DB then XanAM_DB = {} end
+	local frameObj = _G[frame]
+	if not frameObj then return end
 
-	local opt = XanAM_DB[frame] or nil
+	local opt = EnsureLayout(frame)
 
-	if not opt or not opt.point or not opt.xOfs then
-		XanAM_DB[frame] = {
-			["point"] = "CENTER",
-			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
-		}
-		opt = XanAM_DB[frame]
-	end
-
-	_G[frame]:ClearAllPoints()
-	_G[frame]:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
+	frameObj:ClearAllPoints()
+	frameObj:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
 end
