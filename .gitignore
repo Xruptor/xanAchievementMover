@@ -1,2 +1,4 @@
 ﻿xanAchievementMover.code-workspace
 .vscode/settings.json
+
+.github/workflows/release.yml
