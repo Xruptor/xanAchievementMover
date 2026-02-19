@@ -44,6 +44,32 @@ local function createButton(parentFrame, displayText)
 	return button
 end
 
+local function createSlider(parentFrame, displayText)
+	buttonIndex = buttonIndex + 1
+
+	local slider = CreateFrame("Slider", ADDON_NAME.."_config_slider_" .. buttonIndex, parentFrame, "OptionsSliderTemplate")
+	slider:SetMinMaxValues(0.5, 5)
+	slider:SetValueStep(0.1)
+	slider:SetObeyStepOnDrag(true)
+	slider:SetWidth(220)
+	slider:SetHeight(16)
+
+	local text = _G[slider:GetName().."Text"]
+	if text then
+		text:SetText(displayText)
+	end
+	local low = _G[slider:GetName().."Low"]
+	if low then
+		low:SetText("0.5")
+	end
+	local high = _G[slider:GetName().."High"]
+	if high then
+		high:SetText("5.0")
+	end
+
+	return slider
+end
+
 local function LoadAboutFrame()
 
 	--Code inspired from tekKonfigAboutPanel
@@ -120,4 +146,33 @@ function configFrame:EnableConfig()
 	
 	addConfigEntry(btnAnchor, 0, -30)
 	addon.aboutPanel.btnAnchor = btnAnchor
+
+	local btnAlertAnchor = createButton(addon.aboutPanel, L.AlertAnchorText or "Toggle Alert Frame Anchor")
+	btnAlertAnchor.func = function() addon:ToggleAlertSystem() end
+	btnAlertAnchor:SetScript("OnClick", btnAlertAnchor.func)
+
+	addConfigEntry(btnAlertAnchor, 0, -20)
+	addon.aboutPanel.btnAlertAnchor = btnAlertAnchor
+
+	local btnReset = createButton(addon.aboutPanel, L.ResetAll)
+	btnReset.func = function() addon:ResetAlertAnchor() end
+	btnReset:SetScript("OnClick", btnReset.func)
+
+	addConfigEntry(btnReset, 0, -20)
+	addon.aboutPanel.btnReset = btnReset
+
+	local scaleSlider = createSlider(addon.aboutPanel, L.ScaleText)
+	scaleSlider:SetScript("OnValueChanged", function(self, value)
+		if addon and addon.SetScale then
+			addon:SetScale(value, true)
+		end
+	end)
+	scaleSlider:SetScript("OnShow", function(self)
+		if addon and addon.GetScale then
+			self:SetValue(addon:GetScale())
+		end
+	end)
+
+	addConfigEntry(scaleSlider, 0, -25)
+	addon.aboutPanel.scaleSlider = scaleSlider
 end
