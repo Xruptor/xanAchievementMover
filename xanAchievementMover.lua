@@ -13,7 +13,6 @@ local C_AddOns = _G.C_AddOns
 local GetAddOnMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
 local DisableAddOn = _G.DisableAddOn
 local AlertFrame = _G.AlertFrame
-local issecure = _G.issecure
 
 local ALERTFRAME_ANCHOR_NAME = "xanAchievementMover_AlertAnchor"
 local LEGACY_ANCHOR_NAME = "xanAchievementMover_Anchor"
@@ -109,9 +108,6 @@ end
 -- Avoid taint/forbidden access when touching protected frames.
 local function CanAccessObject(obj)
 	if not obj then return false end
-	if type(issecure) == "function" and not issecure() then
-		return false
-	end
 	if type(obj.IsForbidden) == "function" and obj:IsForbidden() then
 		return false
 	end
@@ -201,6 +197,15 @@ local function ApplySubSystemAnchors(subsystems, startAnchor, shouldAnchor)
 	for i = 1, #subsystems do
 		local subSystem = subsystems[i]
 		if subSystem and subSystem.AdjustAnchors and shouldAnchor(subSystem) then
+			if subSystem.alertFramePool and subSystem.alertFramePool.EnumerateActive then
+				for alertFrame in subSystem.alertFramePool:EnumerateActive() do
+					alertFrame:ClearAllPoints()
+				end
+			elseif subSystem.alertFrame and subSystem.alertFrame.ClearAllPoints then
+				subSystem.alertFrame:ClearAllPoints()
+			elseif subSystem.anchorFrame and subSystem.anchorFrame.ClearAllPoints then
+				subSystem.anchorFrame:ClearAllPoints()
+			end
 			relativeFrame = subSystem:AdjustAnchors(relativeFrame)
 		end
 	end
@@ -210,15 +215,16 @@ end
 -- 1) Achievement/criteria -> legacy anchor
 -- 2) Everything else -> alert anchor
 local function customFixAnchors(self, ...)
-	if not AlertFrame then return end
-	if not CanAccessObject(AlertFrame) then return end
+	local container = self or AlertFrame
+	if not container then return end
+	if not CanAccessObject(container) then return end
 
 	addon:ApplyScale()
 
-	local subsystems = AlertFrame.alertFrameSubSystems
+	local subsystems = container.alertFrameSubSystems
 	if type(subsystems) ~= "table" then return end
-	if AlertFrame.CleanAnchorPriorities then
-		AlertFrame:CleanAnchorPriorities()
+	if container.CleanAnchorPriorities then
+		container:CleanAnchorPriorities()
 	end
 
 	-- Achievements/criteria always use the legacy anchor.
@@ -244,6 +250,12 @@ function addon:EnableAddon()
 		DisableForNoAchievements()
 		self:UnregisterAllEvents()
 		return
+	end
+
+	-- Ensure the Achievement UI is loaded so test alerts don't error before the frame exists.
+	-- This mirrors Blizzard's lazy-load behavior but forces it early for consistency.
+	if type(_G.AchievementFrame_LoadUI) == "function" and not _G.AchievementFrame then
+		_G.AchievementFrame_LoadUI()
 	end
 
 	-- Prevent UIParent's frame manager from re-anchoring AlertFrame.
@@ -438,7 +450,13 @@ end
 local function CreateAlertAnchor()
 	local frame = CreateFrame("Frame", ALERTFRAME_ANCHOR_NAME, UIParent, BackdropTemplate)
 	frame:SetFrameStrata("DIALOG")
-	frame:SetSize(160, 40)
+	-- Match LootRollMover's alert anchor sizing (based on AlertFrame).
+	local alertBase = _G.AlertFrame
+	local alertWidth = (alertBase and alertBase.GetWidth and alertBase:GetWidth()) or 249
+	local alertHeight = (alertBase and alertBase.GetHeight and alertBase:GetHeight()) or 71
+	if not alertWidth or alertWidth < 15 then alertWidth = 249 end
+	if not alertHeight or alertHeight < 15 then alertHeight = 71 end
+	frame:SetSize(alertWidth, alertHeight)
 
 	frame:EnableMouse(true)
 	frame:SetMovable(true)
@@ -479,9 +497,8 @@ local function CreateAlertAnchor()
 	end
 
 	local stringA = frame:CreateFontString()
-	stringA:SetFontObject("GameFontHighlight")
-	stringA:SetJustifyH("LEFT")
-	stringA:SetText(L.Alert_Anchor or "xanAchievementMover Alert Frame Anchor \n\nRight click when finished dragging")
+	stringA:SetFontObject("GameFontNormalSmall")
+	stringA:SetText((L.Alert_Anchor or "xanAchievementMover Alert Frame Anchor \n\nRight click when finished dragging"))
 	stringA:SetAllPoints(frame)
 
 	frame:Hide()
