@@ -114,6 +114,33 @@ local function CanAccessObject(obj)
 	return true
 end
 
+local function IsEditModeActive()
+	local manager = _G.EditModeManagerFrame
+	if manager then
+		if type(manager.IsEditModeActive) == "function" then
+			local ok, active = pcall(manager.IsEditModeActive, manager)
+			if ok then return active end
+		end
+		if manager.editModeActive ~= nil then
+			return manager.editModeActive
+		end
+	end
+	if _G.C_EditMode and type(_G.C_EditMode.IsEditModeActive) == "function" then
+		local ok, active = pcall(_G.C_EditMode.IsEditModeActive)
+		if ok then return active end
+	end
+	return false
+end
+
+local function IsTalkingHeadActive()
+	local th = _G.TalkingHeadFrame
+	if not th then return false end
+	if type(th.IsShown) == "function" and th:IsShown() then
+		return true
+	end
+	return false
+end
+
 local function PrintHelp()
 	PrintMessage("Available commands:")
 	PrintMessage("  /xam")
@@ -190,6 +217,28 @@ local function IsAchievementSubSystem(alertFrameSubSystem)
 			or alertFrameSubSystem == _G.CriteriaAlertSystem)
 end
 
+local function IsTalkingHeadSubSystem(alertFrameSubSystem)
+	if not alertFrameSubSystem then return false end
+	local th = _G.TalkingHeadFrame
+	if not th then return false end
+	if alertFrameSubSystem.anchorFrame == th or alertFrameSubSystem.alertFrame == th then
+		return true
+	end
+	if alertFrameSubSystem.alertFrame and alertFrameSubSystem.alertFrame.GetName then
+		local name = alertFrameSubSystem.alertFrame:GetName()
+		if name and name == "TalkingHeadFrame" then
+			return true
+		end
+	end
+	if alertFrameSubSystem.anchorFrame and alertFrameSubSystem.anchorFrame.GetName then
+		local name = alertFrameSubSystem.anchorFrame:GetName()
+		if name and name == "TalkingHeadFrame" then
+			return true
+		end
+	end
+	return false
+end
+
 -- Run AdjustAnchors for a filtered set of subsystems against a start anchor.
 local function ApplySubSystemAnchors(subsystems, startAnchor, shouldAnchor)
 	if not startAnchor then return end
@@ -215,6 +264,8 @@ end
 -- 1) Achievement/criteria -> legacy anchor
 -- 2) Everything else -> alert anchor
 local function customFixAnchors(self, ...)
+	if IsEditModeActive() then return end
+	if IsTalkingHeadActive() then return end
 	local container = self or AlertFrame
 	if not container then return end
 	if not CanAccessObject(container) then return end
@@ -229,13 +280,15 @@ local function customFixAnchors(self, ...)
 
 	-- Achievements/criteria always use the legacy anchor.
 	local achievementAnchor = _G[LEGACY_ANCHOR_NAME]
-	ApplySubSystemAnchors(subsystems, achievementAnchor, IsAchievementSubSystem)
+	ApplySubSystemAnchors(subsystems, achievementAnchor, function(subSystem)
+		return IsAchievementSubSystem(subSystem) and not IsTalkingHeadSubSystem(subSystem)
+	end)
 
 	-- All other alerts use the alert anchor.
 	if IsAlertSystemEnabled() then
 		local alertAnchor = _G[ALERTFRAME_ANCHOR_NAME]
 		ApplySubSystemAnchors(subsystems, alertAnchor, function(subSystem)
-			return not IsAchievementSubSystem(subSystem)
+			return not IsAchievementSubSystem(subSystem) and not IsTalkingHeadSubSystem(subSystem)
 		end)
 	end
 
