@@ -2,3 +2,4 @@
 .vscode/settings.json
 
 .github/workflows/release.yml
+AGENTS.md

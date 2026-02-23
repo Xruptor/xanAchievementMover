@@ -13,6 +13,10 @@ local C_AddOns = _G.C_AddOns
 local GetAddOnMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
 local DisableAddOn = _G.DisableAddOn
 local AlertFrame = _G.AlertFrame
+local function RefreshAlertFrame()
+	AlertFrame = _G.AlertFrame or AlertFrame
+	return AlertFrame
+end
 
 local ALERTFRAME_ANCHOR_NAME = "xanAchievementMover_AlertAnchor"
 local LEGACY_ANCHOR_NAME = "xanAchievementMover_Anchor"
@@ -201,8 +205,9 @@ function addon:ApplyScale()
 			alertAnchor:SetScale(scale)
 		end
 	end
-	if CanAccessObject(AlertFrame) then
-		AlertFrame:SetScale(scale)
+	local alertFrame = RefreshAlertFrame()
+	if CanAccessObject(alertFrame) then
+		alertFrame:SetScale(scale)
 	end
 end
 
@@ -266,7 +271,7 @@ end
 local function customFixAnchors(self, ...)
 	if IsEditModeActive() then return end
 	if IsTalkingHeadActive() then return end
-	local container = self or AlertFrame
+	local container = self or RefreshAlertFrame()
 	if not container then return end
 	if not CanAccessObject(container) then return end
 
@@ -274,9 +279,6 @@ local function customFixAnchors(self, ...)
 
 	local subsystems = container.alertFrameSubSystems
 	if type(subsystems) ~= "table" then return end
-	if container.CleanAnchorPriorities then
-		container:CleanAnchorPriorities()
-	end
 
 	-- Achievements/criteria always use the legacy anchor.
 	local achievementAnchor = _G[LEGACY_ANCHOR_NAME]
@@ -313,12 +315,13 @@ function addon:EnableAddon()
 
 	-- Prevent UIParent's frame manager from re-anchoring AlertFrame.
 	if not self._managedOverride then
+		local alertFrame = RefreshAlertFrame()
 		local managedPositions = _G.UIPARENT_MANAGED_FRAME_POSITIONS
 		if type(managedPositions) == "table" then
 			managedPositions["AlertFrame"] = nil
 		end
-		if AlertFrame then
-			AlertFrame.ignoreFramePositionManager = true
+		if alertFrame then
+			alertFrame.ignoreFramePositionManager = true
 		end
 		self._managedOverride = true
 	end
@@ -334,8 +337,9 @@ function addon:EnableAddon()
 	legacyAnchor.isLoaded = true
 
 	-- Hook AlertFrame anchor updates to enforce split anchoring.
-	if AlertFrame and AlertFrame.UpdateAnchors and not self._alertHooked then
-		hooksecurefunc(AlertFrame, "UpdateAnchors", customFixAnchors)
+	local alertFrame = RefreshAlertFrame()
+	if alertFrame and alertFrame.UpdateAnchors and not self._alertHooked then
+		hooksecurefunc(alertFrame, "UpdateAnchors", customFixAnchors)
 		self._alertHooked = true
 	end
 
@@ -423,8 +427,9 @@ function addon:ToggleAlertSystem()
 		end
 	end
 	self:ApplyScale()
-	if AlertFrame and AlertFrame.UpdateAnchors then
-		AlertFrame:UpdateAnchors()
+	local alertFrame = RefreshAlertFrame()
+	if alertFrame and alertFrame.UpdateAnchors then
+		alertFrame:UpdateAnchors()
 	end
 end
 
