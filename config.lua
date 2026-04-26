@@ -11,7 +11,7 @@ if not _G[ADDON_NAME] then
 end
 local addon = _G[ADDON_NAME]
 
-addon.configFrame = CreateFrame("frame", ADDON_NAME.."_config_eventFrame", UIParent, BackdropTemplate)
+addon.configFrame = CreateFrame("Frame", ADDON_NAME.."_config_eventFrame", UIParent, BackdropTemplate)
 local configFrame = addon.configFrame
 
 addon.private = private
@@ -32,11 +32,11 @@ local function addConfigEntry(objEntry, adjustX, adjustY)
 	lastObject = objEntry
 end
 
-local buttonIndex = 0
+local widgetIndex = 0
 local function createButton(parentFrame, displayText)
-	buttonIndex = buttonIndex + 1
+	widgetIndex = widgetIndex + 1
 	
-	local button = CreateFrame("Button", ADDON_NAME.."_config_button_" .. buttonIndex, parentFrame, "UIPanelButtonTemplate")
+	local button = CreateFrame("Button", ADDON_NAME.."_config_button_" .. widgetIndex, parentFrame, "UIPanelButtonTemplate")
 	button:SetText(displayText)
 	button:SetHeight(30)
 	button:SetWidth(button:GetTextWidth() + 30)
@@ -45,9 +45,9 @@ local function createButton(parentFrame, displayText)
 end
 
 local function createSlider(parentFrame, displayText)
-	buttonIndex = buttonIndex + 1
+	widgetIndex = widgetIndex + 1
 
-	local slider = CreateFrame("Slider", ADDON_NAME.."_config_slider_" .. buttonIndex, parentFrame, "OptionsSliderTemplate")
+	local slider = CreateFrame("Slider", ADDON_NAME.."_config_slider_" .. widgetIndex, parentFrame, "OptionsSliderTemplate")
 	slider:SetMinMaxValues(0.5, 5)
 	slider:SetValueStep(0.1)
 	slider:SetObeyStepOnDrag(true)
@@ -124,7 +124,7 @@ local function LoadAboutFrame()
 	if InterfaceOptions_AddCategory then
 		InterfaceOptions_AddCategory(about)
 	else
-		local category, layout = _G.Settings.RegisterCanvasLayoutCategory(about, about.name);
+		local category = _G.Settings.RegisterCanvasLayoutCategory(about, about.name);
 		_G.Settings.RegisterAddOnCategory(category);
 		addon.settingsCategory = category
 	end
@@ -141,36 +141,27 @@ function configFrame:EnableConfig()
 	
 	--anchor
 	local btnAnchor = createButton(addon.aboutPanel, L.AnchorText)
-	btnAnchor.func = function() addon:ToggleAnchor() end
-	btnAnchor:SetScript("OnClick", btnAnchor.func)
-	
+	btnAnchor:SetScript("OnClick", function() addon:ToggleAnchor() end)
 	addConfigEntry(btnAnchor, 0, -30)
 	addon.aboutPanel.btnAnchor = btnAnchor
 
 	local btnAlertAnchor = createButton(addon.aboutPanel, L.AlertAnchorText or "Toggle Alert Frame Anchor")
-	btnAlertAnchor.func = function() addon:ToggleAlertSystem() end
-	btnAlertAnchor:SetScript("OnClick", btnAlertAnchor.func)
-
+	btnAlertAnchor:SetScript("OnClick", function() addon:ToggleAlertSystem() end)
 	addConfigEntry(btnAlertAnchor, 0, -20)
 	addon.aboutPanel.btnAlertAnchor = btnAlertAnchor
 
 	local btnReset = createButton(addon.aboutPanel, L.ResetAll)
-	btnReset.func = function() addon:ResetAlertAnchor() end
-	btnReset:SetScript("OnClick", btnReset.func)
+	btnReset:SetScript("OnClick", function() addon:ResetAlertAnchor() end)
 
 	addConfigEntry(btnReset, 0, -20)
 	addon.aboutPanel.btnReset = btnReset
 
 	local scaleSlider = createSlider(addon.aboutPanel, L.ScaleText)
 	scaleSlider:SetScript("OnValueChanged", function(self, value)
-		if addon and addon.SetScale then
-			addon:SetScale(value, true)
-		end
+		addon:SetScale(value, true)
 	end)
 	scaleSlider:SetScript("OnShow", function(self)
-		if addon and addon.GetScale then
-			self:SetValue(addon:GetScale())
-		end
+		self:SetValue(addon:GetScale())
 	end)
 
 	addConfigEntry(scaleSlider, 0, -25)

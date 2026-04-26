@@ -38,12 +38,10 @@ local L = addon.L
 local WOW_PROJECT_ID = _G.WOW_PROJECT_ID
 local WOW_PROJECT_MAINLINE = _G.WOW_PROJECT_MAINLINE
 local WOW_PROJECT_CLASSIC = _G.WOW_PROJECT_CLASSIC
---local WOW_PROJECT_BURNING_CRUSADE_CLASSIC = _G.WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 local WOW_PROJECT_WRATH_CLASSIC = _G.WOW_PROJECT_WRATH_CLASSIC
 
 addon.IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
---BSYC.IsTBC_C = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 addon.IsWLK_C = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 
 local function PrintMessage(message)
@@ -226,22 +224,7 @@ local function IsTalkingHeadSubSystem(alertFrameSubSystem)
 	if not alertFrameSubSystem then return false end
 	local th = _G.TalkingHeadFrame
 	if not th then return false end
-	if alertFrameSubSystem.anchorFrame == th or alertFrameSubSystem.alertFrame == th then
-		return true
-	end
-	if alertFrameSubSystem.alertFrame and alertFrameSubSystem.alertFrame.GetName then
-		local name = alertFrameSubSystem.alertFrame:GetName()
-		if name and name == "TalkingHeadFrame" then
-			return true
-		end
-	end
-	if alertFrameSubSystem.anchorFrame and alertFrameSubSystem.anchorFrame.GetName then
-		local name = alertFrameSubSystem.anchorFrame:GetName()
-		if name and name == "TalkingHeadFrame" then
-			return true
-		end
-	end
-	return false
+	return alertFrameSubSystem.anchorFrame == th or alertFrameSubSystem.alertFrame == th
 end
 
 -- Run AdjustAnchors for a filtered set of subsystems against a start anchor.
@@ -393,21 +376,16 @@ end
 function addon:ToggleAnchor()
 	local anchor = _G[LEGACY_ANCHOR_NAME]
 	if not anchor then return end
+	local alertAnchor = _G[ALERTFRAME_ANCHOR_NAME]
 	if anchor:IsVisible() then
 		anchor:Hide()
-		local alertAnchor = _G[ALERTFRAME_ANCHOR_NAME]
-		if alertAnchor then
-			alertAnchor:Hide()
-		end
+		if alertAnchor then alertAnchor:Hide() end
 	else
 		anchor:Show()
 		anchor.wasToggled = true
-		if IsAlertSystemEnabled() then
-			local alertAnchor = _G[ALERTFRAME_ANCHOR_NAME]
-			if alertAnchor then
-				alertAnchor:Show()
-				alertAnchor.wasToggled = true
-			end
+		if IsAlertSystemEnabled() and alertAnchor then
+			alertAnchor:Show()
+			alertAnchor.wasToggled = true
 		end
 	end
 end
@@ -445,38 +423,37 @@ function addon:ResetAlertAnchor()
 	self:ApplyScale()
 end
 
-local function CreateLegacyAnchor()
-	local frame = CreateFrame("Frame", LEGACY_ANCHOR_NAME, UIParent, BackdropTemplate)
-	frame:SetFrameStrata("DIALOG")
-	frame:SetSize(300, 88)
-
+local function SetupDraggable(frame)
 	frame:EnableMouse(true)
 	frame:SetMovable(true)
-
-	frame:SetScript("OnMouseDown",function(self, button)
+	frame:SetScript("OnMouseDown", function(self, button)
 		if button == "LeftButton" then
 			self.isMoving = true
 			self:StartMoving()
 		else
 			self:Hide()
 		end
-
 	end)
-	frame:SetScript("OnMouseUp",function(self)
-		if( self.isMoving ) then
+	frame:SetScript("OnMouseUp", function(self)
+		if self.isMoving then
 			self.isMoving = nil
 			self:StopMovingOrSizing()
-
 			addon:SaveLayout(self:GetName())
 		end
 	end)
-
-	frame:SetScript("OnHide",function(self)
+	frame:SetScript("OnHide", function(self)
 		if self.wasToggled and self.isLoaded then
 			addon:SaveLayout(self:GetName())
 			self.wasToggled = nil
 		end
 	end)
+end
+
+local function CreateLegacyAnchor()
+	local frame = CreateFrame("Frame", LEGACY_ANCHOR_NAME, UIParent, BackdropTemplate)
+	frame:SetFrameStrata("DIALOG")
+	frame:SetSize(300, 88)
+	SetupDraggable(frame)
 
 	local stringA = frame:CreateFontString()
 	stringA:SetAllPoints(frame)
@@ -515,31 +492,7 @@ local function CreateAlertAnchor()
 	if not alertWidth or alertWidth < 15 then alertWidth = 249 end
 	if not alertHeight or alertHeight < 15 then alertHeight = 71 end
 	frame:SetSize(alertWidth, alertHeight)
-
-	frame:EnableMouse(true)
-	frame:SetMovable(true)
-
-	frame:SetScript("OnMouseDown", function(self, button)
-		if button == "LeftButton" then
-			self.isMoving = true
-			self:StartMoving()
-		else
-			self:Hide()
-		end
-	end)
-	frame:SetScript("OnMouseUp", function(self)
-		if self.isMoving then
-			self.isMoving = nil
-			self:StopMovingOrSizing()
-			addon:SaveLayout(self:GetName())
-		end
-	end)
-	frame:SetScript("OnHide", function(self)
-		if self.wasToggled and self.isLoaded then
-			addon:SaveLayout(self:GetName())
-			self.wasToggled = nil
-		end
-	end)
+	SetupDraggable(frame)
 
 	if frame.SetBackdrop then
 		frame:SetBackdrop({
@@ -622,20 +575,6 @@ function addon:RestoreLayout(frame)
 	frameObj:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
 end
 
----------------------------
---  MISC Debug Stuff    --
----------------------------
----
----
--- hooksecurefunc(CriteriaAlertSystem,"ShowAlert", function()
-	-- Debug("CriteriaAlertSystem (ShowAlert)")
--- end)
-
--- hooksecurefunc(AlertFrame,"AddAlertFrame", function()
-	-- Debug("AlertFrame (AddAlertFrame)")
--- end)
-
-
 --[=[
 
 	WOW uses an AlertSystem to push out alerts on the screen.
@@ -696,42 +635,3 @@ end
 	/run BonusRollFrame_CloseBonusRoll()
 	/run BonusRollFrame_StartBonusRoll(242969,'test',10,515,1273,14) --515 is darkmoon token, change to another currency id you have
 ]=]
-
-
-
-	--DEBUG ONLY
-	---------------------------------
-	--[=[
-		local alertPool
-
-		for k, v in pairs(AlertFrame) do
-			if k then Debug("Parent: "..tostring(k)) end
-		end
-		
-		for k, v in pairs(self) do
-			if k then Debug("Self: "..tostring(k)) end
-		end
-		
-		for i, alertFrameSubSystem in ipairs(self.alertFrameSubSystems) do
-			
-			
-			alertPool = alertFrameSubSystem.alertFramePool
-			
-			if alertPool then
-			
-				-- for k, v in pairs(alertPool) do
-					-- if k then Debug("Pool: "..tostring(k)) end
-				-- end
-
-				for alertFrameObj in alertPool:EnumerateActive() do
-					local nameText = alertFrameObj.Name
-
-					for k, v in pairs(alertFrameObj) do
-						if k then Debug("alertFrameObj: "..tostring(k)) end
-					end
-				end
-				
-			end
-		
-		end
-	]=]
