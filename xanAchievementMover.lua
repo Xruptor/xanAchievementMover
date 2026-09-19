@@ -227,23 +227,43 @@ local function IsTalkingHeadSubSystem(alertFrameSubSystem)
 	return alertFrameSubSystem.anchorFrame == th or alertFrameSubSystem.alertFrame == th
 end
 
+-- Subsystems that wrap a frame positioned by something else (GroupLootContainer, TalkingHeadFrame, ...).
+-- Blizzard's AdjustAnchors for these never calls SetPoint; it only passes the frame through the chain.
+-- Clearing their points leaves them unanchored until a /reload: GroupLootContainer (and the
+-- BonusRollFrame / GroupLootFrames inside it) stop receiving mouse input, and any toast chained on
+-- top of it has nothing valid to attach to. We must never touch these frames.
+local function IsExternallyAnchoredSubSystem(alertFrameSubSystem)
+	if not alertFrameSubSystem then return false end
+	local externalMixin = _G.AlertFrameExternallyAnchoredMixin
+	if externalMixin then
+		return alertFrameSubSystem.AdjustAnchors == externalMixin.AdjustAnchors
+	end
+	-- Fallback for clients without the mixin global: a subsystem wrapping a single anchorFrame
+	-- (no frame pool, no simple alertFrame) is not positioned by the alert system.
+	return alertFrameSubSystem.anchorFrame ~= nil
+		and alertFrameSubSystem.alertFramePool == nil
+		and alertFrameSubSystem.alertFrame == nil
+end
+
 -- Run AdjustAnchors for a filtered set of subsystems against a start anchor.
+-- Externally anchored subsystems are also left out of our chains: Blizzard only stacks toasts on
+-- them while they are in their default position (see AlertContainerMixin:UpdateAnchors /
+-- IsInDefaultPosition). Our chains start at a user-moved anchor, so stacking on GroupLootContainer
+-- would pull every later toast back to the bottom-center loot area while a roll is open.
 local function ApplySubSystemAnchors(subsystems, startAnchor, shouldAnchor)
 	if not startAnchor then return end
 	local relativeFrame = startAnchor
 	for i = 1, #subsystems do
 		local subSystem = subsystems[i]
-		if subSystem and subSystem.AdjustAnchors and shouldAnchor(subSystem) then
+		if subSystem and subSystem.AdjustAnchors and not IsExternallyAnchoredSubSystem(subSystem) and shouldAnchor(subSystem) then
 			if subSystem.alertFramePool and subSystem.alertFramePool.EnumerateActive then
 				for alertFrame in subSystem.alertFramePool:EnumerateActive() do
 					alertFrame:ClearAllPoints()
 				end
 			elseif subSystem.alertFrame and subSystem.alertFrame.ClearAllPoints then
 				subSystem.alertFrame:ClearAllPoints()
-			elseif subSystem.anchorFrame and subSystem.anchorFrame.ClearAllPoints then
-				subSystem.anchorFrame:ClearAllPoints()
 			end
-			relativeFrame = subSystem:AdjustAnchors(relativeFrame)
+			relativeFrame = subSystem:AdjustAnchors(relativeFrame) or relativeFrame
 		end
 	end
 end
